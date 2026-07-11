@@ -10,6 +10,31 @@ Concepts taken and code derived from [AnimeWwise](https://github.com/Escartem/An
 g++ -std=c++23 fuseaw.cpp src/*.cpp -o fuseaw $(pkg-config fuse3 --cflags --libs)
 ```
 
+## Example
+
+```shell
+$ ./fuseaw '/mnt/gamedrv/genshin_impact/Genshin Impact/GenshinImpact_Data/StreamingAssets/AudioAssets/MusicGame/MusicGame11.pck' /tmp/fuseaw
+$ tree /tmp/fuseaw
+/tmp/fuseaw
+├── sounds
+│   └── sfx
+│       ├── 0x113eebf9.wem
+│       ├── 0x216efe11.wem
+│       ├── 0x29bedc1b.wem
+│       ├── 0x2f82cf74.wem
+│       ├── 0x32087a15.wem
+│       ├── 0x32b32c09.wem
+│       ├── 0x347dee95.wem
+│       ├── 0x35a46625.wem
+│       ├── 0x3701b3fb.wem
+│       ├── 0x3c845b18.wem
+│       ├── 0x3f4be383.wem
+│       └── 0xb8f08ff.wem
+└── source.pck -> /mnt/gamedrv/genshin_impact/Genshin Impact/GenshinImpact_Data/StreamingAssets/AudioAssets/MusicGame/MusicGame11.pck
+
+3 directories, 13 files
+```
+
 ## Goals and no-goals
 
 **Goals, accomplished:**
