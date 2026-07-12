@@ -1,47 +1,38 @@
-#include "bnk.h"
-#include "wavescan.h"
 
-#include <vector>
+#include "bnk.h"
+
 #include <cstring>
 #include <iostream>
+#include <memory>
+#include <string_view>
+#include <vector>
 
-bool parse_bnk(std::istream& file, AKPKEntry bnk_entry, std::vector<BNKFileMeta, std::allocator<BNKFileMeta>>& bnk_files) {
-    const std::streampos bnk_offset = bnk_entry.get_real_offset();
-    file.clear();
-    file.seekg(bnk_offset);
+#include "common.h"
+#include "wavescan.h"
 
-    char magic_1[4];
+bool parse_bnk(bytespan_t file, AKPKEntry bnk_entry, std::vector<BNKFileMeta, std::allocator<BNKFileMeta>> &bnk_files)
+{
+    const size_t bnk_offset = bnk_entry.get_real_offset();
 
-    if (!file.read(magic_1, sizeof(magic_1))) {
-        std::cerr << "Error: Failed to read bkhd signature from file: "
-            << std::hex << bnk_entry.file_id << std::dec << std::endl;
-        return false;
-    }
+    CHECK_OR_RETURN_ERR(file.size() >= bnk_offset + 4, "Error: File too small to contain BKHD magic bytes.");
 
-    if (std::string_view(magic_1, 4) != "\x42\x4B\x48\x44") {
-        std::cerr << "Error: bkhd signature mismatch: "
-            << std::hex << bnk_entry.file_id << std::dec << std::endl;
-        return false;
-    }
+    std::string_view magic(reinterpret_cast<const char *>(file.subspan(bnk_offset).data()), 4);
+    CHECK_OR_RETURN_ERR(magic == "BKHD", "Error: BKHD magic bytes mismatch.");
 
     uint32_t bkhd_size;
-    file.read(reinterpret_cast<char*>(&bkhd_size), sizeof(bkhd_size));
-    file.seekg(bkhd_size, std::ios_base::cur);
+    std::memcpy(&bkhd_size, file.subspan(bnk_offset + 4).data(), sizeof(bkhd_size));
+    CHECK_OR_RETURN_ERR(file.size() >= bnk_offset + bkhd_size + 8, "Error: File too small to contain DIDX magic bytes.");
 
-    char magic_2[4];
+    std::string_view magic_2(reinterpret_cast<const char *>(file.subspan(bnk_offset + 8 + bkhd_size).data()), 4);
 
-    if (!file.read(magic_2, sizeof(magic_2))) {
-        std::cerr << "Error: Failed to read didx signature from file: "
-            << std::hex << bnk_entry.file_id << std::dec << std::endl;
-        return false;
-    }
-
-    if (std::string_view(magic_2, 4) != "\x44\x49\x44\x58") {
-        std::cerr << "Error: didx signature mismatch: "
-            << std::hex << bnk_entry.file_id << std::dec;
+    if (magic_2 != "DIDX")
+    {
+        std::cerr << "Error: DIDX magic bytes mismatch: "
+                  << std::hex << bnk_entry.file_id << std::dec;
 
         // For the sake of debugging: Is it HIRC?
-        if (std::string_view(magic_2, 4) == "HIRC") {
+        if (magic_2 == "HIRC")
+        {
             std::cerr << " (HIRC?)";
         }
 
@@ -50,41 +41,28 @@ bool parse_bnk(std::istream& file, AKPKEntry bnk_entry, std::vector<BNKFileMeta,
     }
 
     uint32_t didx_size;
-    file.read(reinterpret_cast<char*>(&didx_size), sizeof(didx_size));
+    std::memcpy(&didx_size, file.subspan(bnk_offset + bkhd_size + 12).data(), sizeof(didx_size));
+    CHECK_OR_RETURN_ERR(
+        file.size() >= bnk_offset + bkhd_size + 16 + didx_size,
+        "Error: File too small to contain all DIDX metadata file metadata.");
+
     const uint32_t n_wems = didx_size / 12;
+    const size_t metadata_entries_base = bnk_offset + bkhd_size + 16;
+    const size_t global_offset_base = bnk_offset + bkhd_size + 16 + didx_size + 8;
 
-    const std::streampos global_offset_base = file.tellg() + static_cast<std::streamoff>(didx_size + sizeof(uint32_t) + 4UL);
-
-    for (uint32_t i = 0; i < n_wems; i++) {
+    for (uint32_t i = 0; i < n_wems; i++)
+    {
         BNKFileMeta this_meta{};
+        const size_t this_offset = metadata_entries_base + (sizeof(BNKFileMetaRaw) * i);
 
-        file.read(reinterpret_cast<char*>(&this_meta.meta_raw), sizeof(this_meta.meta_raw));
-
-        this_meta.global_offset = global_offset_base + static_cast<std::streamoff>(this_meta.meta_raw.wem_offset);
+        std::memcpy(&this_meta.meta_raw, file.subspan(this_offset).data(), sizeof(BNKFileMetaRaw));
+        this_meta.global_offset = global_offset_base + this_meta.meta_raw.wem_offset;
 
         bnk_files.push_back(this_meta);
     }
 
-    char magic_3[4];
-
-    if (!file.read(magic_3, sizeof(magic_3))) {
-        std::cerr << "Error: Failed to read data signature from file: "
-            << std::hex << bnk_entry.file_id << std::dec << std::endl;
-        return false;
-    }
-
-    if (std::string_view(magic_3, 4) != "\x44\x41\x54\x41") {
-        std::cerr << "Error: data signature mismatch: "
-            << std::hex << bnk_entry.file_id << std::dec << std::endl;
-        return false;
-    }
-
-    return true;
-}
-
-bool get_bnk_file(std::istream& file, BNKFileMeta bnk_file, char* out_buf) {
-    file.seekg(bnk_file.global_offset);
-    file.read(out_buf, bnk_file.meta_raw.wem_size);
+    std::string_view magic_3(reinterpret_cast<const char *>(file.subspan(bnk_offset + bkhd_size + 16 + didx_size).data()), 4);
+    CHECK_OR_RETURN_ERR(magic_3 == "DATA", "Error: DATA magic bytes mismatch.");
 
     return true;
 }

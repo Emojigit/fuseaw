@@ -1,16 +1,20 @@
 #pragma once
 
-#include <istream>
-#include <string>
-#include <map>
+#include <cstddef>
 #include <cstdint>
+#include <map>
+#include <string>
+
+#include "wavescan.h"
+#include "bnk.h"
+#include "akpk.h"
 
 enum APKPFilesystemType { File, Directory };
 
 struct AKPKFilesystemNode {
     APKPFilesystemType type;
-    std::streampos offset;
-    std::streamoff size;
+    size_t offset;
+    size_t size;
     std::map<std::string, AKPKFilesystemNode> children;
 };
 

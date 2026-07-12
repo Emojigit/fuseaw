@@ -1,27 +1,25 @@
 #include "helpers.h"
 
-#include <iostream>
-#include <string>
-#include <expected>
-#include <system_error>
 #include <cstdint>
+#include <expected>
+#include <optional>
+#include <string>
+#include <system_error>
+
+#include "common.h"
 
 // 1. utf-8 / utf-16le helpers, for language names, AI-generated
 
 // Heuristic to guess encoding if the stream supports seeking
-StringEncoding detect_encoding(std::istream& stream) {
-    auto pos = stream.tellg();
-    if (pos == std::streampos(-1)) {
-        // Stream doesn't support seeking (e.g., pipe/socket), default to UTF-8
+StringEncoding detect_encoding(bytespan_t file) {
+    // If we have fewer than 2 bytes, we can't reliably check for UTF-16LE.
+    // Default to UTF-8.
+    if (file.size() < 2) {
         return StringEncoding::Utf8;
     }
 
-    char b1 = 0, b2 = 0;
-    stream.get(b1);
-    stream.get(b2);
-    
-    stream.clear();
-    stream.seekg(pos);
+    char b1 = static_cast<char>(file[0]);
+    char b2 = static_cast<char>(file[1]);
 
     // Heuristic: If the second byte is null and the first is not, 
     // it's highly likely a UTF-16LE string containing ASCII/Latin text.
@@ -32,35 +30,44 @@ StringEncoding detect_encoding(std::istream& stream) {
     return StringEncoding::Utf8;
 }
 
-std::expected<std::string, std::error_code> read_string_from_stream(
-    std::istream& stream, 
+std::expected<std::string, std::error_code> read_string_from_span(
+    bytespan_t file,
+    size_t start,
     std::optional<StringEncoding> forced_encoding
 ) {
-    StringEncoding encoding = forced_encoding.value_or(detect_encoding(stream));
+    if (start >= file.size()) {
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    }
+
+    bytespan_t data = file.subspan(start);
+    size_t cursor = 0;
+
+    StringEncoding encoding = forced_encoding.value_or(detect_encoding(data));
     std::string result;
 
     if (encoding == StringEncoding::Utf8) {
-        char ch;
-        while (stream.get(ch)) {
+        while (cursor < data.size()) {
+            char ch = static_cast<char>(data[cursor++]);
             if (ch == '\0') {
                 return result;
             }
             result.push_back(ch);
         }
-        if (stream.eof() && !result.empty()) return result;
-        return std::unexpected(std::make_error_code(std::errc::io_error));
+        if (!result.empty()) return result;
+        return std::unexpected(std::make_error_code(std::errc::illegal_byte_sequence));
     } 
     
     // Process UTF-16LE string
     while (true) {
-        char b1, b2;
-        if (!stream.get(b1)) {
-            if (stream.eof()) break;
-            return std::unexpected(std::make_error_code(std::errc::io_error));
+        if (cursor == data.size()) {
+            break; // Clean EOF at character boundary
         }
-        if (!stream.get(b2)) {
-            return std::unexpected(std::make_error_code(std::errc::illegal_byte_sequence));
+        if (cursor + 2 > data.size()) {
+            return std::unexpected(std::make_error_code(std::errc::illegal_byte_sequence)); // Truncated character
         }
+
+        uint8_t b1 = static_cast<uint8_t>(data[cursor++]);
+        uint8_t b2 = static_cast<uint8_t>(data[cursor++]);
 
         // Reassemble little-endian code unit safely avoiding sign extension
         uint16_t u16 = static_cast<uint8_t>(b1) | (static_cast<uint8_t>(b2) << 8);
@@ -72,11 +79,13 @@ std::expected<std::string, std::error_code> read_string_from_stream(
 
         // Handle UTF-16 surrogate pairs
         if (cp >= 0xD800 && cp <= 0xDBFF) { // High surrogate
-            char b3, b4;
-            if (!stream.get(b3) || !stream.get(b4)) {
+            if (cursor + 2 > data.size()) {
                 return std::unexpected(std::make_error_code(std::errc::illegal_byte_sequence));
             }
-            uint16_t next_u16 = static_cast<uint8_t>(b3) | (static_cast<uint8_t>(b4) << 8);
+            uint8_t b3 = static_cast<uint8_t>(data[cursor++]);
+            uint8_t b4 = static_cast<uint8_t>(data[cursor++]);
+            
+            uint16_t next_u16 = b3 | (b4 << 8);
             if (next_u16 >= 0xDC00 && next_u16 <= 0xDFFF) { // Low surrogate
                 cp = 0x10000 + ((cp - 0xD800) << 10) + (next_u16 - 0xDC00);
             } else {

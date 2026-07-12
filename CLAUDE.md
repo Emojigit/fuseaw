@@ -85,10 +85,6 @@ Single-process read-only FUSE driver. The lifetime of a request is:
 - `file_mutex` in `FSContext` serializes every read because the `std::ifstream` is shared across all FUSE worker threads. Reads clear eof/fail flags and reseek before each transfer.
 - The mount is strictly read-only: `fuseaw_open` rejects any non-`O_RDONLY` flag with `EACCES` (`fuseaw.cpp:168`), and `fuseaw_oper` only wires up the read-side callbacks — there is no `write`, `create`, `mkdir`, `unlink`, or `rename`.
 
-## Testing
-
-There is no automated test harness. The `early_examples/` directory contains standalone CLI programs that exercise each layer end-to-end against a real `.pck` file and print what they find — use them as smoke tests when changing parser code. They are not pytest-style; each one is invoked with a file path and prints a human-readable report.
-
 ## VS Code configuration
 
 `.vscode/c_cpp_properties.json` configures clang for IntelliSense with `${workspaceFolder}/**` on the include path. No launch/build tasks are defined — build with the `g++` commands above.

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <istream>
-#include <vector>
 #include <memory>
+#include <vector>
 
+#include "common.h"
 #include "wavescan.h"
 
 #pragma pack(push, 1)
@@ -19,10 +19,7 @@ struct BNKFileMetaRaw
 struct BNKFileMeta
 {
     BNKFileMetaRaw meta_raw;
-    std::streampos global_offset;
+    size_t global_offset;
 };
 
-bool parse_bnk(std::istream &file, AKPKEntry bnk_entry, std::vector<BNKFileMeta, std::allocator<BNKFileMeta>> &bnk_files);
-
-bool get_bnk_file(std::istream& file, BNKFileMeta bnk_file, char* out_buf);
-
+bool parse_bnk(bytespan_t file, AKPKEntry bnk_entry, std::vector<BNKFileMeta, std::allocator<BNKFileMeta>> &bnk_files);

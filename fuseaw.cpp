@@ -1,23 +1,27 @@
 #define FUSE_USE_VERSION 31
 
-#include "src/wavescan.h"
-#include "src/bnk.h"
+#include <fuse3/fuse.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <cerrno>
+#include <cstddef>
+#include <cstring>
+#include <filesystem>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <sstream>
+#include <utility>
+
 #include "src/akpk.h"
 #include "src/filesystem.h"
 
-#include <fuse3/fuse.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <filesystem>
-#include <algorithm>
-#include <mutex>
-#include <istream>
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <cstring>
-#include <cerrno>
-#include <utility>
+namespace fs = std::filesystem;
 
 // g++ -std=c++23 fuseaw.cpp src/*.cpp -o fuseaw $(pkg-config fuse3 --cflags --libs)
 
@@ -36,7 +40,7 @@
  */
 
 struct FSContext {
-    std::unique_ptr<std::istream> file;
+    std::span<const std::byte> file_span;
     std::filesystem::path file_path;
     struct stat file_stat;
     std::mutex file_mutex;
@@ -184,17 +188,18 @@ static int fuseaw_read(const char* path, char* buf, size_t size, off_t offset, s
     if (offset >= static_cast<off_t>(node->size)) return 0;
     size_t to_read = std::min(size, static_cast<size_t>(node->size - offset));
 
-    std::lock_guard<std::mutex> lock(ctx->file_mutex);
+    const size_t target_offset = node->offset + static_cast<size_t>(offset);
 
-    ctx->file->clear();
-    ctx->file->seekg(node->offset + offset, std::ios::beg);
+    if (target_offset >= ctx->file_span.size()) {
+        return 0; 
+    }
 
-    if (!ctx->file) return -EIO;
+    if (target_offset + to_read > ctx->file_span.size()) {
+        to_read = ctx->file_span.size() - target_offset;
+    }
 
-    ctx->file->read(buf, to_read);
-
-    std::streamsize bytes_read = ctx->file->gcount();
-    return static_cast<int>(bytes_read);
+    std::memcpy(buf, ctx->file_span.subspan(target_offset).data(), to_read);
+    return static_cast<int>(to_read);
 }
 
 static const struct fuse_operations fuseaw_oper = {
@@ -211,22 +216,34 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string filename = argv[1];
+    fs::path filepath = argv[1];
 
     struct stat file_stat;
-    if (stat(filename.c_str(), &file_stat)) {
-        std::cerr << "Error: Could not stat() .pck file '" << filename << "'\n";
+    if (stat(filepath.c_str(), &file_stat)) {
+        std::cerr << "Error: Could not stat() .pck file '" << filepath << std::endl;
         return 1;
     }
 
-    auto input_stream = std::make_unique<std::ifstream>(filename, std::ios::binary);
-    if (!input_stream->is_open()) {
-        std::cerr << "Error: Could not open .pck file '" << filename << "'\n";
+    size_t filesize = fs::file_size(filepath);
+
+    int fd = open(filepath.c_str(), O_RDONLY);
+    if (fd == -1) {
+        std::cerr << "Error opening file: " << fd << std::endl;
         return 1;
     }
+
+    void* mapped_data = mmap(nullptr, filesize, PROT_READ, MAP_SHARED, fd, 0);
+    close(fd);
+
+    if (mapped_data == MAP_FAILED) {
+        std::cerr << "Error: Mmap failed" << std::endl;
+        return 1;
+    }
+
+    std::span<const std::byte> file_span(static_cast<const std::byte*>(mapped_data), filesize);
 
     AKPKFileData file_data{};
-    if (!parse_akpk_file(*input_stream, file_data)) {
+    if (!parse_akpk_span(file_span, file_data)) {
         std::cerr << "Error: Failed to parse pck file\n";
         return 1;
     }
@@ -240,8 +257,8 @@ int main(int argc, char* argv[]) {
     clean_empty_directories(root_node);
 
     FSContext ctx {
-        .file = std::move(input_stream),
-        .file_path = std::filesystem::absolute(std::filesystem::path(filename)),
+        .file_span = file_span,
+        .file_path = std::filesystem::absolute(filepath),
         .file_stat = std::move(file_stat),
         .file_node = std::move(root_node),
     };

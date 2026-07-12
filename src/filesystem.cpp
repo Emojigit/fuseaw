@@ -1,13 +1,15 @@
-#include "wavescan.h"
-#include "bnk.h"
-#include "akpk.h"
 #include "filesystem.h"
 
-#include <string>
-#include <map>
 #include <cstdint>
 #include <cstring>
+#include <format>
+#include <map>
 #include <ranges>
+#include <string>
+
+#include "akpk.h"
+#include "bnk.h"
+#include "wavescan.h"
 
 bool construct_bnk_filesystem(
     std::vector<BNKFileMeta> bnk_contents,
