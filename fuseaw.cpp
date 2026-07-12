@@ -43,7 +43,6 @@ struct FSContext {
     std::span<const std::byte> file_span;
     std::filesystem::path file_path;
     struct stat file_stat;
-    std::mutex file_mutex;
     AKPKFilesystemNode file_node;
 };
 
