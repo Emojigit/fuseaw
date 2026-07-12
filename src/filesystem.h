@@ -19,19 +19,19 @@ struct AKPKFilesystemNode {
 };
 
 bool construct_bnk_filesystem(
-    BNKFile bnk_contents,
+    const BNKFile& bnk_contents,
     AKPKFilesystemNode& root
 );
 
 bool construct_sector_filesystem(
-    AKPKEntryList sector_entries,
-    AKPKLanguageDataList language_data,
-    BNKFileMap bnk_files,
+    const AKPKEntryList& sector_entries,
+    const AKPKLanguageDataList& language_data,
+    const BNKFileMap& bnk_files,
     AKPKFilesystemNode& root
 );
 
 bool construct_akpk_filesystem(
-    AKPKFileData data,
+    const AKPKFileData& data,
     AKPKFilesystemNode& root
 );
 

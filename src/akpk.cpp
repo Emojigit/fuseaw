@@ -10,7 +10,7 @@
 #include "common.h"
 #include "wavescan.h"
 
-bool parse_akpk_span(bytespan_t file, AKPKFileData &data)
+bool parse_akpk_span(const bytespan_t file, AKPKFileData &data)
 {
     if (!load_akpk_header(file, data.header))
     {

@@ -9,7 +9,7 @@
 #include "common.h"
 #include "helpers.h"
 
-bool load_akpk_header(bytespan_t file, AKPKHeader &out_header)
+bool load_akpk_header(const bytespan_t file, AKPKHeader &out_header)
 {
     CHECK_OR_RETURN_ERR(file.size() >= 24, "Error: File too small to containing AKPK header.");
 
@@ -36,8 +36,8 @@ bool load_akpk_header(bytespan_t file, AKPKHeader &out_header)
 }
 
 bool get_languages(
-    bytespan_t file,
-    size_t language_sector_begin,
+    const bytespan_t file,
+    const size_t language_sector_begin,
     AKPKLanguageDataList &language_data)
 {
     uint32_t total_languages;
@@ -75,13 +75,13 @@ bool get_languages(
 }
 
 bool get_sector(
-    bytespan_t file,
-    size_t sector_begin,
-    uint32_t sector_size,
-    bool is_sounds,
-    bool is_externals,
+    const bytespan_t file,
+    const size_t sector_begin,
+    const uint32_t sector_size,
+    const bool is_sounds,
+    const bool is_externals,
     const char default_extension[4],
-    std::endian endianness,
+    const std::endian endianness,
     uint32_t &bank_version,
     AKPKEntryList &sector_files)
 {

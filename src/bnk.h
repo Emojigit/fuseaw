@@ -26,4 +26,4 @@ struct BNKFileMeta
 using BNKFile = std::vector<BNKFileMeta, std::allocator<BNKFileMeta>>;
 using BNKFileMap = std::map<uint64_t, BNKFile>;
 
-bool parse_bnk(bytespan_t file, AKPKEntry bnk_entry, BNKFile &bnk_file);
+bool parse_bnk(const bytespan_t file, const AKPKEntry &bnk_entry, BNKFile &bnk_file);

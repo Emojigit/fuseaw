@@ -11,7 +11,7 @@
 #include "wavescan.h"
 
 bool construct_bnk_filesystem(
-    BNKFile bnk_contents,
+    const BNKFile& bnk_contents,
     AKPKFilesystemNode& root
 ) {
     root.type = Directory;
@@ -30,9 +30,9 @@ bool construct_bnk_filesystem(
 }
 
 bool construct_sector_filesystem(
-    AKPKEntryList sector_entries,
-    AKPKLanguageDataList language_data,
-    BNKFileMap bnk_files,
+    const AKPKEntryList& sector_entries,
+    const AKPKLanguageDataList& language_data,
+    const BNKFileMap& bnk_files,
     AKPKFilesystemNode& root
 ) {
     root.type = Directory;
@@ -53,7 +53,7 @@ bool construct_sector_filesystem(
         const std::string filename = std::format("0x{:x}.{}", entry.file_id, entry.file_extension);
 
         if (strcmp(entry.file_extension, "bnk") == 0 && bnk_files.contains(entry.file_id)) {
-            if (!construct_bnk_filesystem(bnk_files[entry.file_id], this_node)) {
+            if (!construct_bnk_filesystem(bnk_files.at(entry.file_id), this_node)) {
                 return false;
             }
         } else {
@@ -73,7 +73,7 @@ bool construct_sector_filesystem(
 }
 
 bool construct_akpk_filesystem(
-    AKPKFileData data,
+    const AKPKFileData& data,
     AKPKFilesystemNode& root
 ) {
     root.type = Directory;

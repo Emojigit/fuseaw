@@ -15,4 +15,4 @@ struct AKPKFileData {
     BNKFileMap bnk_files;
 };
 
-bool parse_akpk_span(bytespan_t file, AKPKFileData &data);
+bool parse_akpk_span(const bytespan_t file, AKPKFileData &data);

@@ -14,10 +14,10 @@ enum class StringEncoding {
     Utf16Le
 };
 
-StringEncoding detect_encoding(bytespan_t file);
+StringEncoding detect_encoding(const bytespan_t file);
 
 std::expected<std::string, std::error_code> read_string_from_span(
-    bytespan_t file,
-    size_t start,
-    std::optional<StringEncoding> forced_encoding = std::nullopt
+    const bytespan_t file,
+    const size_t start,
+    const std::optional<StringEncoding> forced_encoding = std::nullopt
 );
