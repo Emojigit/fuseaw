@@ -93,16 +93,17 @@ static int fuseaw_getattr(const char *path, struct stat *stbuf, struct fuse_file
     constexpr mode_t directory_ro = S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH;
     constexpr mode_t file_ro = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;
     constexpr mode_t symlink_ro = S_IFLNK | 0777;
-    std::vector<std::string> pathcomps = split_path(path);
 
     // Special case: source.pck
-    if (pathcomps.size() == 1 && pathcomps[0] == "source.pck") {
+    if (path[0] == '/' && path[1] != '\0' && std::string_view(path + 1) == "source.pck") {
         stbuf->st_mode = symlink_ro;
         stbuf->st_nlink = 1;
         stbuf->st_size = ctx->file_path.string().size();
 
         return 0;
     }
+
+    std::vector<std::string> pathcomps = split_path(path);
 
     AKPKFilesystemNode* node = traverse_node(&ctx->file_node, pathcomps);
     if (node == nullptr) return -ENOENT;
@@ -125,9 +126,8 @@ static int fuseaw_getattr(const char *path, struct stat *stbuf, struct fuse_file
 
 static int fuseaw_readlink(const char *path, char *buf, size_t size) {
     auto* ctx = static_cast<FSContext*>(fuse_get_context()->private_data);
-    std::vector<std::string> pathcomps = split_path(path);
 
-    if (pathcomps.size() == 1 && pathcomps[0] == "source.pck") {
+    if (path[0] == '/' && path[1] != '\0' && std::string_view(path + 1) == "source.pck") {
         strncpy(buf, ctx->file_path.string().c_str(), size);
 
         return 0;
