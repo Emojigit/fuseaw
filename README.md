@@ -4,11 +4,31 @@
 
 Concepts taken and code derived from [AnimeWwise](https://github.com/Escartem/AnimeWwise).
 
-## Compile
+## Compile and run
+
+Install libfuse3 and Linux headers, then use `make` to build the binary.
+
+Usage:
 
 ```bash
-g++ -std=c++23 fuseaw.cpp src/*.cpp -o fuseaw $(pkg-config fuse3 --cflags --libs)
+./fuseaw <.pck file path> [options] <mountpoint>
 ```
+
+## Directory structure
+
+```text
+/[sector_name]/[language_name]/0x[file_id].[ext]
+```
+
+* `sector_name`: The name of the sector containing the files
+  * One of the following: `banks`, `sounds`, `externals`
+* `language_name`: The name of the language in UTF-8
+  * Usually one of the following: `chinese`, `english(us)`, `japanese`, `korean`, `sfx`
+* `file_id`: Internal file ID in lowercase hexedecimal format
+* `ext`: File extension
+  * One of the following: `bnk`, `wem`, `xma`, `ogg`, `wav`
+
+For `.bnk` files containing DIDX data, they are shown as directories containing more `.wem` files, where the file names are the internal WEM file IDs in lowercase hexedecimal format.
 
 ## Example
 
