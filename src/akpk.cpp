@@ -5,8 +5,6 @@
 #include "akpk.h"
 
 #include <cstring>
-#include <map>
-#include <vector>
 
 #include "bnk.h"
 #include "common.h"
@@ -50,13 +48,13 @@ bool parse_akpk_span(bytespan_t file, AKPKFileData &data)
         if (strcmp(entry.file_extension, "bnk") != 0)
             continue;
 
-        std::vector<BNKFileMeta> bnk_files;
+        BNKFile bnk_file;
 
-        if (parse_bnk(file, entry, bnk_files))
+        if (parse_bnk(file, entry, bnk_file))
         {
             // Forgive invalid blocks, we may have hit a HIRC block
             // https://github.com/Escartem/AnimeWwise/blob/c2d9bfc09c679d73466150d8f127b345946cf8e3/bnk.py#L26
-            data.bnk_files[entry.file_id] = bnk_files;
+            data.bnk_files[entry.file_id] = bnk_file;
         }
     }
 

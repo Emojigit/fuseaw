@@ -60,12 +60,15 @@ struct AKPKEntry
     }
 };
 
+using AKPKLanguageDataList = std::vector<AKPKLanguageData, std::allocator<AKPKLanguageData>>;
+using AKPKEntryList = std::vector<AKPKEntry, std::allocator<AKPKEntry>>;
+
 bool load_akpk_header(bytespan_t file, AKPKHeader &out_header);
 
 bool get_languages(
     bytespan_t file,
     size_t language_sector_begin,
-    std::vector<AKPKLanguageData, std::allocator<AKPKLanguageData>> &language_data);
+    AKPKLanguageDataList &language_data);
 
 bool get_sector(
     bytespan_t file,
@@ -76,4 +79,4 @@ bool get_sector(
     const char default_extension[4],
     std::endian endianness,
     uint32_t &bank_version,
-    std::vector<AKPKEntry, std::allocator<AKPKEntry>> &sector_files);
+    AKPKEntryList &sector_files);

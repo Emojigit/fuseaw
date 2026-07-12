@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
-#include <map>
 #include <ranges>
 #include <string>
 
@@ -12,7 +11,7 @@
 #include "wavescan.h"
 
 bool construct_bnk_filesystem(
-    std::vector<BNKFileMeta> bnk_contents,
+    BNKFile bnk_contents,
     AKPKFilesystemNode& root
 ) {
     root.type = Directory;
@@ -31,9 +30,9 @@ bool construct_bnk_filesystem(
 }
 
 bool construct_sector_filesystem(
-    std::vector<AKPKEntry> sector_entries,
-    std::vector<AKPKLanguageData> language_data,
-    std::map<uint64_t, std::vector<BNKFileMeta>> bnk_files,
+    AKPKEntryList sector_entries,
+    AKPKLanguageDataList language_data,
+    BNKFileMap bnk_files,
     AKPKFilesystemNode& root
 ) {
     root.type = Directory;

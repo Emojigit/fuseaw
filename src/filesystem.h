@@ -19,14 +19,14 @@ struct AKPKFilesystemNode {
 };
 
 bool construct_bnk_filesystem(
-    std::vector<BNKFileMeta> bnk_contents,
+    BNKFile bnk_contents,
     AKPKFilesystemNode& root
 );
 
 bool construct_sector_filesystem(
-    std::vector<AKPKEntry> sector_entries,
-    std::vector<AKPKLanguageData> language_data,
-    std::map<uint64_t, std::vector<BNKFileMeta>> bnk_files,
+    AKPKEntryList sector_entries,
+    AKPKLanguageDataList language_data,
+    BNKFileMap bnk_files,
     AKPKFilesystemNode& root
 );
 

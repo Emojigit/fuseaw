@@ -5,12 +5,11 @@
 #include <iostream>
 #include <memory>
 #include <string_view>
-#include <vector>
 
 #include "common.h"
 #include "wavescan.h"
 
-bool parse_bnk(bytespan_t file, AKPKEntry bnk_entry, std::vector<BNKFileMeta, std::allocator<BNKFileMeta>> &bnk_files)
+bool parse_bnk(bytespan_t file, AKPKEntry bnk_entry, BNKFile &bnk_file)
 {
     const size_t bnk_offset = bnk_entry.get_real_offset();
 
@@ -58,7 +57,7 @@ bool parse_bnk(bytespan_t file, AKPKEntry bnk_entry, std::vector<BNKFileMeta, st
         std::memcpy(&this_meta.meta_raw, file.subspan(this_offset).data(), sizeof(BNKFileMetaRaw));
         this_meta.global_offset = global_offset_base + this_meta.meta_raw.wem_offset;
 
-        bnk_files.push_back(this_meta);
+        bnk_file.push_back(this_meta);
     }
 
     std::string_view magic_3(reinterpret_cast<const char *>(file.subspan(bnk_offset + bkhd_size + 16 + didx_size).data()), 4);

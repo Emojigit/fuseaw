@@ -5,7 +5,6 @@
 #include <format>
 #include <iostream>
 #include <string_view>
-#include <vector>
 
 #include "common.h"
 #include "helpers.h"
@@ -39,7 +38,7 @@ bool load_akpk_header(bytespan_t file, AKPKHeader &out_header)
 bool get_languages(
     bytespan_t file,
     size_t language_sector_begin,
-    std::vector<AKPKLanguageData, std::allocator<AKPKLanguageData>> &language_data)
+    AKPKLanguageDataList &language_data)
 {
     uint32_t total_languages;
     CHECK_OR_RETURN_ERR(file.size() >= language_sector_begin + sizeof(total_languages), "Error: File too small to contain total language count.");
@@ -84,7 +83,7 @@ bool get_sector(
     const char default_extension[4],
     std::endian endianness,
     uint32_t &bank_version,
-    std::vector<AKPKEntry, std::allocator<AKPKEntry>> &sector_files)
+    AKPKEntryList &sector_files)
 {
     // Size == 4 -> total_files == 0, don't waste time and declare success
     // If we do have files, it would be an error, and we are not intrested in
