@@ -13,14 +13,16 @@ bool parse_bnk(const bytespan_t file, const AKPKEntry &bnk_entry, BNKFile &bnk_f
 {
     const size_t bnk_offset = bnk_entry.get_real_offset();
 
-    CHECK_OR_RETURN_ERR(file.size() >= bnk_offset + 4, "Error: File too small to contain BKHD magic bytes.");
+    CHECK_OR_RETURN_ERR(file.size() >= bnk_offset + 8, "Error: Pack too small to contain BKHD magic bytes.");
+    CHECK_OR_RETURN_ERR(bnk_entry.file_size >= 8, "Error: File too small to contain BKHD magic bytes.");
 
     std::string_view magic(reinterpret_cast<const char *>(file.subspan(bnk_offset).data()), 4);
     CHECK_OR_RETURN_ERR(magic == "BKHD", "Error: BKHD magic bytes mismatch.");
 
     uint32_t bkhd_size;
     std::memcpy(&bkhd_size, file.subspan(bnk_offset + 4).data(), sizeof(bkhd_size));
-    CHECK_OR_RETURN_ERR(file.size() >= bnk_offset + bkhd_size + 8, "Error: File too small to contain DIDX magic bytes.");
+    CHECK_OR_RETURN_ERR(file.size() >= bnk_offset + bkhd_size + 16, "Error: Pack too small to contain DIDX magic bytes.");
+    CHECK_OR_RETURN_ERR(bnk_entry.file_size >= bkhd_size + 16, "Error: File too small to contain DIDX magic bytes.");
 
     std::string_view magic_2(reinterpret_cast<const char *>(file.subspan(bnk_offset + 8 + bkhd_size).data()), 4);
 
@@ -42,7 +44,10 @@ bool parse_bnk(const bytespan_t file, const AKPKEntry &bnk_entry, BNKFile &bnk_f
     uint32_t didx_size;
     std::memcpy(&didx_size, file.subspan(bnk_offset + bkhd_size + 12).data(), sizeof(didx_size));
     CHECK_OR_RETURN_ERR(
-        file.size() >= bnk_offset + bkhd_size + 16 + didx_size,
+        file.size() >= bnk_offset + bkhd_size + 20 + didx_size,
+        "Error: File too small to contain all DIDX metadata file metadata.");
+    CHECK_OR_RETURN_ERR(
+        bnk_entry.file_size >= bkhd_size + 20 + didx_size,
         "Error: File too small to contain all DIDX metadata file metadata.");
 
     const uint32_t n_wems = didx_size / 12;
