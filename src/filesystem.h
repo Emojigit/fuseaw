@@ -15,7 +15,7 @@ struct AKPKFilesystemNode {
     APKPFilesystemType type;
     size_t offset;
     size_t size;
-    std::map<std::string, AKPKFilesystemNode> children;
+    std::map<std::string, AKPKFilesystemNode, std::less<>> children;
 };
 
 bool construct_bnk_filesystem(
@@ -36,3 +36,5 @@ bool construct_akpk_filesystem(
 );
 
 void clean_empty_directories(AKPKFilesystemNode& root);
+
+AKPKFilesystemNode* traverse_node(AKPKFilesystemNode* root, std::string_view path);

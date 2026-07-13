@@ -46,32 +46,6 @@ struct FSContext {
     AKPKFilesystemNode file_node;
 };
 
-std::vector<std::string> split_path(const std::string& path) {
-    std::vector<std::string> components;
-    std::stringstream ss(path);
-    std::string item;
-    while (std::getline(ss, item, '/')) {
-        if (!item.empty()) {
-            components.push_back(item);
-        }
-    }
-    return components;
-}
-
-AKPKFilesystemNode* traverse_node(AKPKFilesystemNode* root, std::vector<std::string> pathcomps) {
-    AKPKFilesystemNode* node = root;
-
-    for (const std::string &comp : pathcomps) {
-        if (!node->children.contains(comp)) {
-            return nullptr;
-        }
-
-        node = &node->children[comp];
-    }
-
-    return node;
-}
-
 static void* fuseaw_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
     cfg->kernel_cache = 1;
 
@@ -102,9 +76,7 @@ static int fuseaw_getattr(const char *path, struct stat *stbuf, struct fuse_file
         return 0;
     }
 
-    std::vector<std::string> pathcomps = split_path(path);
-
-    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, pathcomps);
+    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, path);
     if (node == nullptr) return -ENOENT;
 
     if (node->type == APKPFilesystemType::Directory) {
@@ -112,7 +84,7 @@ static int fuseaw_getattr(const char *path, struct stat *stbuf, struct fuse_file
         stbuf->st_nlink = 2 + node->children.size();
 
         // source.pck
-        if (pathcomps.empty()) stbuf->st_nlink += 1;
+        if (path[0] == '/' && path[1] == '\0') stbuf->st_nlink += 1;
 
         return 0;
     }
@@ -139,9 +111,8 @@ static int fuseaw_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
                          off_t offset, struct fuse_file_info* fi, enum fuse_readdir_flags flags) {
     (void) offset; (void) fi; (void) flags;
     auto* ctx = static_cast<FSContext*>(fuse_get_context()->private_data);
-    std::vector<std::string> pathcomps = split_path(path);
 
-    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, pathcomps);
+    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, path);
     if (node == nullptr) return -ENOENT;
     if (node->type != APKPFilesystemType::Directory) return -ENOTDIR;
 
@@ -152,7 +123,7 @@ static int fuseaw_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
         filler(buf, filename.c_str(), nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
     }
 
-    if (pathcomps.size() == 0) {
+    if (path[0] == '/' && path[1] == '\0') {
         filler(buf, "source.pck", nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
     }
 
@@ -161,9 +132,8 @@ static int fuseaw_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
 
 static int fuseaw_open(const char* path, struct fuse_file_info* fi) {
     auto* ctx = static_cast<FSContext*>(fuse_get_context()->private_data);
-    std::vector<std::string> pathcomps = split_path(path);
 
-    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, pathcomps);
+    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, path);
 
     if (node == nullptr) return -ENOENT;
     if (node->type == APKPFilesystemType::Directory) return -EISDIR;
@@ -176,9 +146,8 @@ static int fuseaw_read(const char* path, char* buf, size_t size, off_t offset, s
     (void) fi;
 
     auto* ctx = static_cast<FSContext*>(fuse_get_context()->private_data);
-    std::vector<std::string> pathcomps = split_path(path);
 
-    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, pathcomps);
+    AKPKFilesystemNode* node = traverse_node(&ctx->file_node, path);
 
     if (node == nullptr) return -ENOENT;
     if (node->type == APKPFilesystemType::Directory) return -EISDIR;

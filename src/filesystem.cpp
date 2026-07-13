@@ -108,3 +108,21 @@ void clean_empty_directories(AKPKFilesystemNode& root) {
         return value.children.empty();
     });
 }
+
+AKPKFilesystemNode* traverse_node(AKPKFilesystemNode* root, std::string_view path) {
+    AKPKFilesystemNode* node = root;
+
+    for (const auto word : path | std::views::split('/')) {
+        std::string_view segment(word.begin(), word.end());
+        if (segment.empty()) continue;
+
+        auto it = node->children.find(segment);
+        if (it == node->children.end()) {
+            return nullptr;
+        }
+
+        node = &it->second;
+    }
+
+    return node;
+}
