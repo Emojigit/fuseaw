@@ -53,7 +53,9 @@ bool get_languages(
     {
         AKPKLanguageData this_language{};
         const uint32_t this_language_offset = language_sector_begin + sizeof(total_languages) + sizeof(uint32_t) * 2 * i;
-        std::memcpy(&this_language, file.subspan(this_language_offset, language_data_base_size).data(), language_data_base_size);
+        const std::byte* raw_data = file.subspan(this_language_offset, language_data_base_size).data();
+        std::memcpy(&this_language.language_offset, raw_data, sizeof(uint32_t));
+        std::memcpy(&this_language.language_id, raw_data + sizeof(uint32_t), sizeof(uint32_t));
 
         const size_t string_start_offset = language_sector_begin + this_language.language_offset;
 

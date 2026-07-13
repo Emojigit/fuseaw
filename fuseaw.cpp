@@ -61,7 +61,7 @@ std::vector<std::string> split_path(const std::string& path) {
 AKPKFilesystemNode* traverse_node(AKPKFilesystemNode* root, std::vector<std::string> pathcomps) {
     AKPKFilesystemNode* node = root;
 
-    for (const std::string comp : pathcomps) {
+    for (const std::string &comp : pathcomps) {
         if (!node->children.contains(comp)) {
             return nullptr;
         }
@@ -80,7 +80,6 @@ static void* fuseaw_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
 
 static int fuseaw_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
     (void) fi;
-	int res = 0;
 
 	memset(stbuf, 0, sizeof(struct stat));
 
@@ -207,6 +206,7 @@ static const struct fuse_operations fuseaw_oper = {
     .open = fuseaw_open,
     .read = fuseaw_read,
     .readdir = fuseaw_readdir,
+    .init = fuseaw_init,
 };
 
 int main(int argc, char* argv[]) {
