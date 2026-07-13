@@ -1,7 +1,6 @@
 #pragma once
 
 #include <expected>
-#include <optional>
 #include <string>
 #include <system_error>
 
@@ -14,10 +13,7 @@ enum class StringEncoding {
     Utf16Le
 };
 
-StringEncoding detect_encoding(const bytespan_t file);
-
 std::expected<std::string, std::error_code> read_string_from_span(
     const bytespan_t file,
-    const size_t start,
-    const std::optional<StringEncoding> forced_encoding = std::nullopt
+    const size_t start
 );

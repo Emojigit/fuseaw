@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <expected>
-#include <optional>
 #include <string>
 #include <system_error>
 
@@ -11,7 +10,7 @@
 // 1. utf-8 / utf-16le helpers, for language names, AI-generated
 
 // Heuristic to guess encoding if the stream supports seeking
-StringEncoding detect_encoding(const bytespan_t file) {
+static StringEncoding detect_encoding(const bytespan_t file) {
     // If we have fewer than 2 bytes, we can't reliably check for UTF-16LE.
     // Default to UTF-8.
     if (file.size() < 2) {
@@ -32,8 +31,7 @@ StringEncoding detect_encoding(const bytespan_t file) {
 
 std::expected<std::string, std::error_code> read_string_from_span(
     const bytespan_t file,
-    const size_t start,
-    const std::optional<StringEncoding> forced_encoding
+    const size_t start
 ) {
     if (start >= file.size()) {
         return std::unexpected(std::make_error_code(std::errc::invalid_argument));
@@ -42,7 +40,7 @@ std::expected<std::string, std::error_code> read_string_from_span(
     bytespan_t data = file.subspan(start);
     size_t cursor = 0;
 
-    StringEncoding encoding = forced_encoding.value_or(detect_encoding(data));
+    StringEncoding encoding = detect_encoding(data);
     std::string result;
 
     if (encoding == StringEncoding::Utf8) {
