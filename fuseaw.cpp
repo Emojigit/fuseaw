@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "src/akpk.h"
+#include "src/common.h"
 #include "src/filesystem.h"
 
 namespace fs = std::filesystem;
@@ -208,7 +209,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::span<const std::byte> file_span(static_cast<const std::byte*>(mapped_data), filesize);
+    bytespan_t file_span(static_cast<const std::byte*>(mapped_data), filesize);
 
     AKPKFileData file_data{};
     if (!parse_akpk_span(file_span, file_data)) {
